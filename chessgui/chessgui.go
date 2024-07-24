@@ -1,4 +1,4 @@
-package main
+package chessgui
 
 import (
 	"gogm/chess"
@@ -15,14 +15,10 @@ const squareWidth int32 = boardWidth / 8
 const squareHeight int32 = boardHeight / 8
 const piecesImagePath string = "assets/pieces.png"
 
-type Bot interface {
-	Think(*chess.Board) chess.Move
-}
-
 type guiState struct {
 	board                   *chess.Board
-	whiteBot                *Bot
-	blackBot                *Bot
+	whiteBot                chess.Bot
+	blackBot                chess.Bot
 	window                  *sdl.Window
 	renderer                *sdl.Renderer
 	piecesTexture           *sdl.Texture
@@ -40,7 +36,7 @@ type guiState struct {
 // Open a window displaying the match between `whiteBot` and `blackBot`
 // If either `whiteBot` or `blackBot` or both are `nil`, then that side will be
 // played by the user
-func Run(board *chess.Board, whiteBot *Bot, blackBot *Bot) {
+func Run(board *chess.Board, whiteBot chess.Bot, blackBot chess.Bot) {
 	state := setup(board, whiteBot, blackBot)
 	defer state.destroy()
 
@@ -70,11 +66,25 @@ func Run(board *chess.Board, whiteBot *Bot, blackBot *Bot) {
 			}
 		}
 
+		// Bot moves
+		var activeBot chess.Bot
+		if state.board.IsBlackToMove() {
+			activeBot = blackBot
+		} else {
+			activeBot = whiteBot
+		}
+
+		if activeBot != nil {
+			// currently giving the bot infinite time, TODO: time control
+			botMove := activeBot.Think(board)
+			state.makeMove(botMove)
+		}
+
 		state.render()
 	}
 }
 
-func setup(board *chess.Board, whiteBot *Bot, blackBot *Bot) (state guiState) {
+func setup(board *chess.Board, whiteBot chess.Bot, blackBot chess.Bot) (state guiState) {
 	// Initialize SDL
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		panic(err)
@@ -189,6 +199,12 @@ func (state *guiState) drawBoard() {
 	}
 }
 
+func (state *guiState) makeMove(move chess.Move) {
+	unmove := state.board.MakeMove(move)
+	state.lastMove = &move
+	state.unmoveHistory = append(state.unmoveHistory, unmove)
+}
+
 func (state *guiState) onLeftMouseButtonDown() {
 	var userControl bool
 	if state.board.IsBlackToMove() {
@@ -217,16 +233,13 @@ func (state *guiState) onLeftMouseButtonDown() {
 
 				isPromotion := state.board.GetPiece(state.pieceSourceSquare).Kind == chess.Pawn && destinationSquare.Rank() == promotionRank
 
-				move := chess.Move{
+				state.makeMove(chess.Move{
 					Source:      state.pieceSourceSquare,
 					Destination: destinationSquare,
 					IsPromotion: isPromotion,
 					PromotedPiece: chess.Queen,
-				}
+				})
 
-				unmove := state.board.MakeMove(move)
-				state.lastMove = &move
-				state.unmoveHistory = append(state.unmoveHistory, unmove)
 				break
 			}
 		}
@@ -279,12 +292,3 @@ func loadPiecesTexture(renderer *sdl.Renderer) (piecesTexture *sdl.Texture, piec
 	return
 }
 
-func main() {
-	board, err := chess.LoadFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq")
-
-	if err != nil {
-		panic(err)
-	}
-
-	Run(board, nil, nil)
-}

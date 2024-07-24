@@ -1,7 +1,9 @@
 go 1.22.5
 
 use (
+	./botv1
 	./chess
 	./chessgui
 	./perft
+	./playbot
 )
