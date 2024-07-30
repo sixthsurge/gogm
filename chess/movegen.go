@@ -140,7 +140,7 @@ func GetPieceAttackSet(piece Piece, allPiecesBitboard Bitboard, board *Board) Bi
 	return EmptyBitboard
 }
 
-func (board *Board) GetLegalMoves() []Move {
+func (board *Board) GetLegalMoves(capturesOnly bool) []Move {
 	moves := make([]Move, 0, 256)
 
 	friendlyPieces := board.GetPiecesForSide(board.blackToMove)
@@ -223,6 +223,11 @@ func (board *Board) GetLegalMoves() []Move {
 			}
 		}
 
+		if capturesOnly {
+			// Filter for only captures
+			moveSet &= enemyPiecesBitboard
+		}
+
 		// Add all moves in move set to the list of legal moves
 		bitIndex := 0
 		for v := uint64(moveSet); v != 0; {
@@ -267,6 +272,10 @@ func (board *Board) GetLegalMoves() []Move {
 
 			bitIndex += 1
 		}
+	}
+
+	if (capturesOnly) {
+		return moves
 	}
 
 	// Consider castling
@@ -320,7 +329,7 @@ func (board *Board) GetLegalMoves() []Move {
 }
 
 func (board *Board) GetLegalMovesFromSquare(sq Square) (result []Move) {
-	legalMoves := board.GetLegalMoves()
+	legalMoves := board.GetLegalMoves(false)
 
 	for _, move := range legalMoves {
 		if move.Source == sq {

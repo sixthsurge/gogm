@@ -8,7 +8,7 @@ import (
 func evaluate(board *chess.Board) float64 {
     evaluation := float64(0.0)
     black := board.IsBlackToMove()
-    legalMoves := board.GetLegalMoves()
+    legalMoves := board.GetLegalMoves(false)
 
     if len(legalMoves) == 0 {
         if board.IsCheck() {

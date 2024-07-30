@@ -21,7 +21,7 @@ func perft(board *chess.Board, depth int) uint64 {
 
     nodeCount := uint64(0)
 
-    for _, move := range board.GetLegalMoves() {
+    for _, move := range board.GetLegalMoves(false) {
         unmove := board.MakeMove(move)
 
         if detectIllegalMoves {
